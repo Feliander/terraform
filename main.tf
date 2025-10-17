@@ -22,10 +22,12 @@ locals {
 resource "libvirt_network" "vm_network" {
   name      = "terraform_net"
   mode      = "nat"
-  domain    = "terraform.test"
   addresses = ["192.168.125.0/24"]
   dhcp {
-    enabled = true
+    enabled = false
+  }
+  dns {
+    enabled = false
   }
   autostart = true
 }
@@ -62,8 +64,11 @@ resource "libvirt_domain" "nginx_vm" {
   cloudinit = libvirt_cloudinit_disk.commoninit.id
 
   network_interface {
-    network_name    = libvirt_network.vm_network.name
-    wait_for_lease  = true
+    network_name = libvirt_network.vm_network.name
+    network_id = libvirt_network.vm_network.id
+    addresses = ["192.168.125.10"]
+    hostname = "nginx"
+    wait_for_lease  = false
   }
 
   disk {

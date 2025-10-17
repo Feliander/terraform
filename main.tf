@@ -15,13 +15,6 @@ variable "ssh_public_key_path" {
   type        = string
 }
 
-data "template_file" "user_data" {
-  template = file("${path.module}/cloud_init.cfg")
-  vars = {
-    ssh_public_key = file(var.ssh_public_key_path)
-  }
-}
-
 locals {
   gib_in_bytes = 1024 * 1024 * 1024
 }
@@ -48,13 +41,17 @@ resource "libvirt_volume" "vm_disk" {
   name           = "test-vm-disk.qcow2"
   pool           = "default"
   base_volume_id = libvirt_volume.base_image.id
-  size           = 10 * local.gib_in_bytes # 10GB
+  size           = 10 * local.gib_in_bytes
 }
 
 resource "libvirt_cloudinit_disk" "commoninit" {
-  name           = "test-vm-cloudinit.iso"
-  pool           = "default"
-  user_data      = data.template_file.user_data.rendered
+  name = "test-vm-cloudinit.iso"
+
+  user_data = templatefile(
+      "${path.module}/cloud_init.yml", {
+        ssh_public_key = file(var.ssh_public_key_path)
+      }
+    )
 }
 
 resource "libvirt_domain" "test_vm" {
@@ -94,7 +91,7 @@ output "vm_ip_address" {
 
 output "ssh_command" {
   value = try(
-    "ssh -i id_rsa ubuntu@${libvirt_domain.test_vm.network_interface[0].addresses[0]}",
+    "ssh ubuntu@${libvirt_domain.test_vm.network_interface[0].addresses[0]}",
     "SSH command unavailable, IP address was not received."
   )
 }

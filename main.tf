@@ -39,18 +39,33 @@ resource "libvirt_volume" "base_image" {
   format = "qcow2"
 }
 
-resource "libvirt_volume" "vm_disk" {
-  name           = "test-vm-disk.qcow2"
+resource "libvirt_volume" "nginx_disk" {
+  name           = "nginx-vm-disk.qcow2"
   pool           = "default"
   base_volume_id = libvirt_volume.base_image.id
-  size           = 10 * local.gib_in_bytes
 }
 
-resource "libvirt_cloudinit_disk" "commoninit" {
-  name = "test-vm-cloudinit.iso"
+resource "libvirt_volume" "backend_disk" {
+  name           = "backend-vm-disk.qcow2"
+  pool           = "default"
+  base_volume_id = libvirt_volume.base_image.id
+}
+
+resource "libvirt_cloudinit_disk" "nginx_init" {
+  name = "nginx-vm-cloudinit.iso"
 
   user_data = templatefile(
-      "${path.module}/cloud_init.yml", {
+      "${path.module}/nginx_cloud_init.yml", {
+        ssh_public_key = file(var.ssh_public_key_path)
+      }
+    )
+}
+
+resource "libvirt_cloudinit_disk" "backend_init" {
+  name = "backend-vm-cloudinit.iso"
+
+  user_data = templatefile(
+      "${path.module}/backend_cloud_init.yml", {
         ssh_public_key = file(var.ssh_public_key_path)
       }
     )
@@ -58,10 +73,10 @@ resource "libvirt_cloudinit_disk" "commoninit" {
 
 resource "libvirt_domain" "nginx_vm" {
   name   = "nginx vm"
-  memory = 2048
+  memory = 512
   vcpu   = 1
 
-  cloudinit = libvirt_cloudinit_disk.commoninit.id
+  cloudinit = libvirt_cloudinit_disk.nginx_init.id
 
   network_interface {
     network_name = libvirt_network.vm_network.name
@@ -72,7 +87,7 @@ resource "libvirt_domain" "nginx_vm" {
   }
 
   disk {
-    volume_id = libvirt_volume.vm_disk.id
+    volume_id = libvirt_volume.nginx_disk.id
   }
   
   graphics {
@@ -87,16 +102,47 @@ resource "libvirt_domain" "nginx_vm" {
   }
 }
 
-output "nginx_vm_ip_address" {
-  value = try(
-    libvirt_domain.nginx_vm.network_interface[0].addresses[0],
-    "IP address unavailable."
-  )
+resource "libvirt_domain" "backend_vm" {
+  name   = "backend vm"
+  memory = 512
+  vcpu   = 1
+
+  cloudinit = libvirt_cloudinit_disk.backend_init.id
+
+  network_interface {
+    network_name = libvirt_network.vm_network.name
+    network_id = libvirt_network.vm_network.id
+    addresses = ["192.168.125.20"]
+    hostname = "backend"
+    wait_for_lease  = false
+  }
+
+  disk {
+    volume_id = libvirt_volume.backend_disk.id
+  }
+  
+  graphics {
+    type = "spice"
+    listen_type = "address"
+  }
+
+  console {
+    type = "pty"
+    target_port = "0"
+    target_type = "serial"
+  }
 }
 
 output "nginx_ssh_command" {
   value = try(
     "ssh ubuntu@${libvirt_domain.nginx_vm.network_interface[0].addresses[0]}",
+    "SSH command unavailable, IP address was not received."
+  )
+}
+
+output "backend_ssh_command" {
+  value = try(
+    "ssh ubuntu@${libvirt_domain.backend_vm.network_interface[0].addresses[0]}",
     "SSH command unavailable, IP address was not received."
   )
 }

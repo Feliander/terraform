@@ -54,8 +54,8 @@ resource "libvirt_cloudinit_disk" "commoninit" {
     )
 }
 
-resource "libvirt_domain" "test_vm" {
-  name   = "test-terraform-vm"
+resource "libvirt_domain" "nginx_vm" {
+  name   = "nginx vm"
   memory = 2048
   vcpu   = 1
 
@@ -82,16 +82,16 @@ resource "libvirt_domain" "test_vm" {
   }
 }
 
-output "vm_ip_address" {
+output "nginx_vm_ip_address" {
   value = try(
-    libvirt_domain.test_vm.network_interface[0].addresses[0],
+    libvirt_domain.nginx_vm.network_interface[0].addresses[0],
     "IP address unavailable."
   )
 }
 
-output "ssh_command" {
+output "nginx_ssh_command" {
   value = try(
-    "ssh ubuntu@${libvirt_domain.test_vm.network_interface[0].addresses[0]}",
+    "ssh ubuntu@${libvirt_domain.nginx_vm.network_interface[0].addresses[0]}",
     "SSH command unavailable, IP address was not received."
   )
 }

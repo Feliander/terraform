@@ -6,3 +6,10 @@ users:
     sudo: ALL=(ALL) NOPASSWD:ALL
     groups: users, admin
     shell: /bin/bash
+
+runcmd:
+  - apt update
+  - apt upgrade
+  - apt install nginx -y
+  - systemctl enable nginx
+  - systemctl start nginx

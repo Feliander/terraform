@@ -44,12 +44,14 @@ resource "libvirt_volume" "nginx_disk" {
   name           = "nginx-vm-disk.qcow2"
   pool           = "default"
   base_volume_id = libvirt_volume.base_image.id
+  size = 10 * local.gib_in_bytes
 }
 
 resource "libvirt_volume" "backend_disk" {
   name           = "backend-vm-disk.qcow2"
   pool           = "default"
   base_volume_id = libvirt_volume.base_image.id
+  size = 10 * local.gib_in_bytes
 }
 
 resource "libvirt_cloudinit_disk" "nginx_init" {

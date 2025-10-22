@@ -76,8 +76,8 @@ resource "libvirt_domain" "nginx_vm" {
   name   = "nginx vm"
   memory = 512
   vcpu   = 1
-
   cloudinit = libvirt_cloudinit_disk.nginx_init.id
+  autostart = true
 
   network_interface {
     network_name = libvirt_network.vm_network.name
@@ -107,8 +107,8 @@ resource "libvirt_domain" "backend_vm" {
   name   = "backend vm"
   memory = 512
   vcpu   = 1
-
   cloudinit = libvirt_cloudinit_disk.backend_init.id
+  autostart = true
 
   network_interface {
     network_name = libvirt_network.vm_network.name

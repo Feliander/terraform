@@ -7,7 +7,28 @@ users:
     groups: users, admin
     shell: /bin/bash
 
+write_files:
+  - path: /etc/systemd/system/test-server.service
+    content: |
+      [Unit]
+      Description=Custom python test http server
+      After=network.target
+      StartLimitIntervalSec=0
+
+      [Service]
+      Type=simple
+      Restart=always
+      RestartSec=1
+      User=ubuntu
+      ExecStart=python3 -m http.server 8080
+
+      [Install]
+      WantedBy=multi-user.target
+    owner: 'root:root'
+    permissions: '0644'
+
 runcmd:
   - apt update
   - apt upgrade
-  - python3 -m http.server 8080
+  - systemctl start test-server
+  - systemctl enable test-server
